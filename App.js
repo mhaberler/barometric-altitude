@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Text, View, StyleSheet } from 'react-native';
+import { Text, View, StyleSheet, TouchableOpacity } from 'react-native';
 import * as Sensors from 'expo-sensors';
 import * as Location from 'expo-location';
 import { LineChart, XAxis, YAxis, Grid } from 'react-native-svg-charts';
@@ -16,6 +16,7 @@ export default function App() {
   const [mqttClient, setMqttClient] = useState(null);
   const [location, setLocation] = useState(null);
   const [messageValue, setMessageValue] = useState('No message received yet');
+  const [isConnected, setIsConnected] = useState(false);
 
   const SEA_LEVEL_PRESSURE = 1013.25;
    // Configuration for MQTT broker (using public test broker)
@@ -36,15 +37,22 @@ export default function App() {
     return altitude;
   };
 
-  // Initialize Paho MQTT client
-  useEffect(() => {
+  // MQTT connection management
+  const connectToMQTT = () => {
+    if (mqttClient && mqttClient.isConnected()) {
+      console.log('Already connected to MQTT broker');
+      return;
+    }
+
     const client = new Paho.Client(
       brokerConfig.host,
       brokerConfig.port,
       brokerConfig.clientId
     );
+    
     client.onConnectionLost = (responseObject) => {
       console.log('Connection lost:', responseObject.errorMessage);
+      setIsConnected(false);
     };
 
     client.onMessageArrived = (message) => {
@@ -59,20 +67,40 @@ export default function App() {
       onSuccess: () => {
         console.log('Connected to MQTT broker');
         setMqttClient(client);
+        setIsConnected(true);
         client.subscribe(brokerConfig.topic);
       },
       onFailure: (err) => {
         console.error('MQTT connection failed:', err.errorMessage);
+        setIsConnected(false);
       },
     };
 
     client.connect(connectOptions);
+  };
+
+  const disconnectFromMQTT = () => {
+    if (mqttClient && mqttClient.isConnected()) {
+      mqttClient.disconnect();
+      console.log('Disconnected from MQTT broker');
+      setIsConnected(false);
+    }
+  };
+
+  const toggleConnection = () => {
+    if (isConnected) {
+      disconnectFromMQTT();
+    } else {
+      connectToMQTT();
+    }
+  };
+
+  // Initialize MQTT client on first render
+  useEffect(() => {
+    connectToMQTT();
 
     return () => {
-      if (client.isConnected()) {
-        client.disconnect();
-        console.log('Disconnected from MQTT broker');
-      }
+      disconnectFromMQTT();
     };
   }, []);
 
@@ -112,7 +140,9 @@ export default function App() {
           setAltitudeData((prev) => [...prev, newAltitude].slice(-20));
           setTimeData((prev) => [...prev, elapsedTime].slice(-20));
 
-          publishAltitudeMQTT(newAltitude);
+          if (isConnected) {
+            publishAltitudeMQTT(newAltitude);
+          }
         });
       } else {
         setPressure('Barometer not available');
@@ -124,7 +154,7 @@ export default function App() {
     return () => {
       if (subscription) subscription.remove();
     };
-  }, [mqttClient]);
+  }, [mqttClient, isConnected]);
 
   // Location data subscription
   useEffect(() => {
@@ -164,6 +194,25 @@ export default function App() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Sensor Readings</Text>
+
+      {/* MQTT Status & Controls */}
+      <View style={styles.mqttContainer}>
+        <View style={styles.statusContainer}>
+          <View style={[styles.statusIndicator, isConnected ? styles.connected : styles.disconnected]} />
+          <Text style={styles.statusText}>
+            MQTT: {isConnected ? 'Connected' : 'Disconnected'}
+          </Text>
+        </View>
+        <TouchableOpacity 
+          style={[styles.connectButton, isConnected ? styles.disconnectButton : styles.connectButton]} 
+          onPress={toggleConnection}
+        >
+          <Text style={styles.buttonText}>
+            {isConnected ? 'Disconnect' : 'Connect'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <Text style={styles.message}>MQTT message: {messageValue}</Text>
 
       {/* Barometer Data */}
@@ -226,7 +275,7 @@ export default function App() {
       </View>
 
       <Text style={styles.note}>
-        Note: Publishing altitude to MQTT topic {MQTT_TOPIC}
+        Note: {isConnected ? `Publishing altitude to MQTT topic ${MQTT_TOPIC}` : 'MQTT disconnected. Not publishing data.'}
       </Text>
     </View>
   );
@@ -248,6 +297,58 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 18,
     marginVertical: 5,
+  },
+  mqttContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 15,
+    padding: 10,
+    backgroundColor: '#e8e8e8',
+    borderRadius: 10,
+  },
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusIndicator: {
+    width: 15,
+    height: 15,
+    borderRadius: 7.5,
+    marginRight: 10,
+  },
+  connected: {
+    backgroundColor: '#4CAF50', // Green when connected
+  },
+  disconnected: {
+    backgroundColor: '#F44336', // Red when disconnected
+  },
+  statusText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  connectButton: {
+    backgroundColor: '#2196F3', // Blue connect button
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+  },
+  disconnectButton: {
+    backgroundColor: '#FF9800', // Orange disconnect button
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  message: {
+    fontSize: 16,
+    marginBottom: 15,
+    padding: 10,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 5,
+    width: '100%',
+    textAlign: 'center',
   },
   chartContainer: {
     width: '100%',
