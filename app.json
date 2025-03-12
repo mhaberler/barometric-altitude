@@ -20,8 +20,12 @@
     "android": {
       "package": "com.haberlerm.barometricaltitude",
       "permissions": [
-        "android.permission.BODY_SENSORS", "INTERNET"
+        "android.permission.BODY_SENSORS",
+        "INTERNET"
       ]
+    },
+    "ios": {
+      "bundleIdentifier": "com.haberlerm.barometricaltitude"
     }
   }
 }
