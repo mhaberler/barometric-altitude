@@ -13,7 +13,15 @@
     "updates": {
       "fallbackToCacheTimeout": 0
     },
-    "assetBundlePatterns": ["**/*"],
-    "newArchEnabled": true
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "newArchEnabled": true,
+    "android": {
+      "package": "com.haberlerm.barometricaltitude",
+      "permissions": [
+        "android.permission.BODY_SENSORS", "INTERNET"
+      ]
+    }
   }
 }
