@@ -28,7 +28,7 @@
     "react-native": "0.76.7",
     "react-native-paper": "^5.13.1",
     "react-native-svg": "15.8.0",
-    "react-native-svg-charts": "^5.4.0"
+    "react-native-svg-charts": "git+https://github.com/landra-sistemas/react-native-svg-charts.git#dev"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"

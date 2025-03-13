@@ -4935,10 +4935,9 @@ react-native-paper@^5.13.1:
     color "^3.1.2"
     use-latest-callback "^0.1.5"
 
-react-native-svg-charts@^5.4.0:
-  version "5.4.0"
-  resolved "https://registry.yarnpkg.com/react-native-svg-charts/-/react-native-svg-charts-5.4.0.tgz#3817a4714c276b7024e60ae5c9f13191614aecc8"
-  integrity sha512-5TaIGSihJaHCGFj32Tc07hZrqqTpvdyAx89PIrW2nLf2tijd61+3UE3jtsiHOvfeAyDgSTWjv6s9qG9d2di7Pw==
+"react-native-svg-charts@git+https://github.com/landra-sistemas/react-native-svg-charts.git#dev":
+  version "5.3.1"
+  resolved "git+https://github.com/landra-sistemas/react-native-svg-charts.git#6af373827eef6d564625342a449bc2de814d986a"
   dependencies:
     d3-array "^1.2.0"
     d3-interpolate-path "2.0.0"
