@@ -19,10 +19,10 @@ export default function App() {
   const [isConnected, setIsConnected] = useState(false);
 
   const SEA_LEVEL_PRESSURE = 1013.25;
-   // Configuration for MQTT broker (using public test broker)
-   const brokerConfig = {
-    host: 'picomqtt.local', // Public test MQTT broker
-    // host: '192.168.2.4', // picomqtt.local', // Public test MQTT broker
+  // Configuration for MQTT broker (using public test broker)
+  const brokerConfig = {
+    // host: 'picomqtt.local', // Public test MQTT broker
+    host: '192.168.2.4', // picomqtt.local', // Public test MQTT broker
     port: 81,           // WebSocket port
     clientId: `mqtt_${Math.random().toString(16).slice(2)}`,
     topic: 'button/state'
@@ -49,7 +49,7 @@ export default function App() {
       brokerConfig.port,
       brokerConfig.clientId
     );
-    
+
     client.onConnectionLost = (responseObject) => {
       console.log('Connection lost:', responseObject.errorMessage);
       setIsConnected(false);
@@ -104,16 +104,19 @@ export default function App() {
     };
   }, []);
 
-  // Publish altitude to MQTT in Teleplot-like format
+  // Publish altitude to MQTT as JSON object
   const publishAltitudeMQTT = (altitude) => {
     if (mqttClient && mqttClient.isConnected()) {
       const timestamp = Date.now();
-      const teleplotMessage = `altitude|${timestamp/1000.0}|${altitude.toFixed(2)}`;
-      const message = new Paho.Message(teleplotMessage);
+      const payload = {
+        altitude: Number(altitude.toFixed(2)),
+        timestamp: timestamp / 1000.0  // report as fractional seconds since 1/1/1970
+      };
+      const message = new Paho.Message(JSON.stringify(payload));
       message.destinationName = MQTT_TOPIC;
       try {
         mqttClient.send(message);
-        console.log(`Published to ${MQTT_TOPIC}: ${teleplotMessage}`);
+        console.log(`Published to ${MQTT_TOPIC}: ${JSON.stringify(payload)}`);
       } catch (err) {
         console.error('MQTT publish error:', err);
       }
@@ -129,7 +132,7 @@ export default function App() {
     const startBarometer = async () => {
       const isAvailable = await Barometer.isAvailableAsync();
       if (isAvailable) {
-        Barometer.setUpdateInterval(1000);
+        Barometer.setUpdateInterval(200);
         subscription = Barometer.addListener((barometerData) => {
           const pressureInHpa = barometerData.pressure;
           const newAltitude = calculateAltitude(pressureInHpa);
@@ -203,8 +206,8 @@ export default function App() {
             MQTT: {isConnected ? 'Connected' : 'Disconnected'}
           </Text>
         </View>
-        <TouchableOpacity 
-          style={[styles.connectButton, isConnected ? styles.disconnectButton : styles.connectButton]} 
+        <TouchableOpacity
+          style={[styles.connectButton, isConnected ? styles.disconnectButton : styles.connectButton]}
           onPress={toggleConnection}
         >
           <Text style={styles.buttonText}>
